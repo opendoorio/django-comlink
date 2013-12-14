@@ -10,7 +10,7 @@ nav #lists-tab { background: #FBD850; color: black; }
 {% endblock %}
 
 {% block content%}
-{% include "interlink/list_menu.frag" %}  
+{% include "comlink/list_menu.frag" %}  
 
 <h2>Moderation List:</h2>
 
@@ -27,10 +27,10 @@ nav #lists-tab { background: #FBD850; color: black; }
 		</tr>
 	{% for incoming_mail in request.user.mail_awaiting_moderation %}
 		<tr>
-			<td><a href="{% url 'interlink.views.moderator_inspect' incoming_mail.id %}">{{ incoming_mail.sent_time }}</a></td>
+			<td><a href="{% url 'comlink.views.moderator_inspect' incoming_mail.id %}">{{ incoming_mail.sent_time }}</a></td>
 			<td>{{ incoming_mail.origin_address }}</td>
 			<td>{{ incoming_mail.subject }}</td>
-			<td>{% include "interlink/incoming_mail_controls.frag" %}</td>
+			<td>{% include "comlink/incoming_mail_controls.frag" %}</td>
 		</tr>
 	{% endfor %}
 	</table>

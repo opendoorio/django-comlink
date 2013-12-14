@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block sub-title %}Interlink | {% endblock %}
+{% block sub-title %}comlink | {% endblock %}
 
 {% block style %}
 nav #lists-tab { background: #FBD850; color: black; }
 {% endblock %}
 
 {% block content%}
-{% include "interlink/list_menu.frag" %}  
+{% include "comlink/list_menu.frag" %}  
 
 <h2>Mailing Lists</h2>
 
@@ -15,8 +15,8 @@ nav #lists-tab { background: #FBD850; color: black; }
 {% for l in lists %}
 	<li>
 		<strong>{{ l }}</strong>: 
-		<a href="{% url 'interlink.views.list_messages' l.id %}">messages</a> |
-		<a href="{% url 'interlink.views.list_subscribers' l.id %}">subscribers</a>
+		<a href="{% url 'comlink.views.list_messages' l.id %}">messages</a> |
+		<a href="{% url 'comlink.views.list_subscribers' l.id %}">subscribers</a>
 	</li>
 {% endfor %}
 </ul>

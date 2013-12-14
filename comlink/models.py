@@ -17,7 +17,7 @@ from django.utils.html import strip_tags
 from django.utils import timezone
 
 from staff.models import Member, Membership
-from interlink.message import MailingListMessage
+from comlink.message import MailingListMessage
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +90,12 @@ class MailingList(models.Model):
       """Fetches incoming mails from the mailing list."""
       # We could bring back the configurability of the mail checker,
       # but right now it doesn't really *test* anything..
-      from interlink.mail import PopMailChecker
+      from comlink.mail import PopMailChecker
       checker = PopMailChecker(self, logger)
       return checker.fetch_mail()
 
    def get_smtp_connection(self):
-      fail_silently = getattr(settings, 'INTERLINK_MAILS_FAIL_SILENTLY', False)
+      fail_silently = getattr(settings, 'comlink_MAILS_FAIL_SILENTLY', False)
       return get_connection(host=self.smtp_host,
                             port=self.smtp_port,
                             username=self.username,
@@ -120,7 +120,7 @@ class MailingList(models.Model):
    def __unicode__(self): return '%s' % self.name
 
    @models.permalink
-   def get_absolute_url(self): return ('interlink.views.list', (), { 'id':self.id })
+   def get_absolute_url(self): return ('comlink.views.list', (), { 'id':self.id })
 
    def create_incoming(self, message, commit=True):
       "Parses an email message and creates an IncomingMail from it."
@@ -270,7 +270,7 @@ class IncomingMail(models.Model):
 
       elif self.owner == None or not self.sender_subscribed() or self.is_moderated_subject():
          subject = 'Moderation Request: %s: %s' % (self.mailing_list.name, self.subject)
-         body = render_to_string('interlink/email/moderation_required.txt', { 'incoming_mail': self })
+         body = render_to_string('comlink/email/moderation_required.txt', { 'incoming_mail': self })
          OutgoingMail.objects.create(mailing_list=self.mailing_list, moderators_only=True, original_mail=self, subject=subject, body=body)
          self.state = 'moderate'
          self.save()
@@ -282,13 +282,13 @@ class IncomingMail(models.Model):
       return user_by_email(self.origin_address)
 
    @property
-   def approve_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('interlink.views.moderator_approve', kwargs={'id':self.id}, current_app='interlink'))
+   def approve_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('comlink.views.moderator_approve', kwargs={'id':self.id}, current_app='comlink'))
 
    @property
-   def reject_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('interlink.views.moderator_reject', kwargs={'id':self.id}))
+   def reject_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('comlink.views.moderator_reject', kwargs={'id':self.id}))
 
    @property
-   def inspect_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('interlink.views.moderator_inspect', kwargs={'id':self.id}))
+   def inspect_url(self): return 'https://%s%s' % (Site.objects.get_current().domain, reverse('comlink.views.moderator_inspect', kwargs={'id':self.id}))
 
    def __unicode__(self): return '%s: %s' % (self.origin_address, self.subject)
 
@@ -324,7 +324,7 @@ class OutgoingMailManager(models.Manager):
             conn.close()
 
 class OutgoingMail(models.Model):
-   """Emails which are consumed by the interlink.tasks.EmailTask"""
+   """Emails which are consumed by the comlink.tasks.EmailTask"""
    mailing_list = models.ForeignKey(MailingList, related_name='outgoing_mails')
    moderators_only = models.BooleanField(default=False)
    original_mail = models.ForeignKey(IncomingMail, blank=True, null=True, default=None, help_text='The incoming mail which caused this mail to be sent')

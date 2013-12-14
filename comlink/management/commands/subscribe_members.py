@@ -10,7 +10,7 @@ logger = logging.getLogger()
 from django.core.management.base import BaseCommand, CommandError
 
 from staff.models import Member
-from interlink.models import MailingList
+from comlink.models import MailingList
 
 class Command(BaseCommand):
 	help = "Subscribes every user with an active membership to a mailing list."

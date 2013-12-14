@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.sites.models import Site
 
-from interlink.models import MailingList, OutgoingMail
+from comlink.models import MailingList, OutgoingMail
 
 class MailingListSubscriptionForm(forms.Form):
 	subscribe = forms.CharField(required=False, widget=forms.HiddenInput)

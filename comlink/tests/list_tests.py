@@ -11,8 +11,8 @@ from django.utils import timezone
 
 from staff.models import Member, MembershipPlan, Membership
 
-from interlink.tests.test_utils import create_user
-from interlink.models import MailingList, IncomingMail, OutgoingMail
+from comlink.tests.test_utils import create_user
+from comlink.models import MailingList, IncomingMail, OutgoingMail
 
 
 class ListTest(TestCase):
@@ -380,7 +380,7 @@ This email has no content type
 		self.mlist1.create_incoming(email.message_from_string(TEST_EMAIL))
 
 	def _throttle_logging_handler(self):
-		logger = logging.getLogger("interlink.models")
+		logger = logging.getLogger("comlink.models")
 		hdlr = logging.NullHandler()
 		logger.addHandler(hdlr)
 
