@@ -16,7 +16,6 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils import timezone
 
-from staff.models import Member, Membership
 from comlink.message import MailingListMessage
 
 logger = logging.getLogger(__name__)
@@ -24,22 +23,19 @@ logger = logging.getLogger(__name__)
 def user_by_email(email):
    users = User.objects.filter(email__iexact=email)
    if len(users) > 0: return users[0]
-   members = Member.objects.filter(email2__iexact=email)
-   if len(members) > 0: return members[0].user
    return None
 User.objects.find_by_email = user_by_email
 
-def membership_save_callback(sender, **kwargs):
-   """When a membership is created, add the user to any opt-out mailing lists"""
-   membership = kwargs['instance']
-   created = kwargs['created']
-   if not created: return
-   # If the member is just switching from one membership to another, don't change subscriptions
-   if Membership.objects.filter(member=membership.member, end_date=membership.start_date-timedelta(days=1)).count() != 0: return
-   mailing_lists = MailingList.objects.filter(is_opt_out=True)
-   for ml in mailing_lists: ml.subscribers.add(membership.member.user)
-post_save.connect(membership_save_callback, sender=Membership)
-
+#def membership_save_callback(sender, **kwargs):
+#   """When a membership is created, add the user to any opt-out mailing lists"""
+#   membership = kwargs['instance']
+#   created = kwargs['created']
+#   if not created: return
+#   # If the member is just switching from one membership to another, don't change subscriptions
+#   if Membership.objects.filter(member=membership.member, end_date=membership.start_date-timedelta(days=1)).count() != 0: return
+#   mailing_lists = MailingList.objects.filter(is_opt_out=True)
+#   for ml in mailing_lists: ml.subscribers.add(membership.member.user)
+#post_save.connect(membership_save_callback, sender=Membership)
 
 def awaiting_moderation(user):
    """Returns an array of IncomingMail objects which await moderation by this user"""
