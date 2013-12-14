@@ -1,3 +1,4 @@
 dist/
 *.pyc
 *.tar.gz
+*.egg-info
