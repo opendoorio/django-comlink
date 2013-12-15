@@ -117,39 +117,40 @@ class MailingList(models.Model):
 
    @models.permalink
    def get_absolute_url(self): return ('comlink.views.list', (), { 'id':self.id })
-
+	
    def create_incoming(self, message, commit=True):
-      "Parses an email message and creates an IncomingMail from it."
-      _name, origin_address = email.utils.parseaddr(message['From'])
-      time_struct = email.utils.parsedate(message['Date'])
-      if time_struct:
-         sent_time = datetime(*time_struct[:-2])
-      else:
-         sent_time = timezone.localtime(timezone.now())
+		"Parses an email message and creates an IncomingMail from it."
+		_name, origin_address = email.utils.parseaddr(message['From'])
+		sent_time = message['sent_time']
+		body = message['body']
+		html_body = message['html_body'] 
+		file_names = message['file_names']
+		message_headers = message['headers']
 
-      body, html_body, file_names = self.find_bodies(message)
-      for file_name in file_names:
-         if body:
-            body = '%s\n\n%s' % (body, '\nAn attachment has been dropped: %s' % strip_tags(file_name))
-         if html_body:
-            html_body = '%s<br><br>%s' % (html_body, '<div>An attachment has been dropped: %s</div>' % strip_tags(file_name))
+		# inject a message about the attachments we dropped. 
+		for file_name in file_names:
+			if body:
+				body = '%s\n\n%s' % (body, '\nAn attachment has been dropped: %s' % strip_tags(file_name))
+			if html_body:
+				html_body = '%s<br><br>%s' % (html_body, '<div>An attachment has been dropped: %s</div>' % strip_tags(file_name))
 
-      site = Site.objects.get_current()
-      if body:
-         body += '\n\nEmail sent to the %s list at https://%s' % (self.name, site.domain)
-      if html_body:
-         html_body += u'<br/><div>Email sent to the %s list at <a href="https://%s">%s</a></div>' % (self.name, site.domain, site.name)
+		site = Site.objects.get_current()
+		if body:
+			body += '\n\nEmail sent to the %s list at https://%s' % (self.name, site.domain)
+		if html_body:
+			html_body += u'<br/><div>Email sent to the %s list at <a href="https://%s">%s</a></div>' % (self.name, site.domain, site.name)
 
-      incoming = IncomingMail(mailing_list=self,
-                             origin_address=origin_address,
-                             subject=message['Subject'],
-                             body=body,
-                             html_body=html_body,
-                             sent_time=sent_time,
-                             original_message=str(message))
-      if commit:
-         incoming.save()
-      return incoming
+		incoming = IncomingMail(mailing_list=self,
+                origin_address=origin_address,
+                subject=message['Subject'],
+                body=body,
+                html_body=html_body,
+                sent_time=sent_time,
+				headers = message_headers,
+			)
+		if commit:
+			incoming.save()
+		return incoming
 
    def find_bodies(self, message):
       """Returns (body, html_body, file_names[]) for this payload, recursing into multipart/alternative payloads if necessary"""
@@ -193,6 +194,8 @@ class IncomingMail(models.Model):
    subject = models.TextField(blank=True)
    body = models.TextField(blank=True, null=True)
    html_body = models.TextField(blank=True, null=True)
+   message_headers = models.TextField(blank=True)
+   # TODO remove this field later
    original_message = models.TextField(blank=True)
 
    owner = models.ForeignKey(User, blank=True, null=True, default=None)
@@ -394,7 +397,7 @@ class OutgoingMail(models.Model):
 
       if self.original_mail and not self.moderators_only:
          # Attempt to propagate certain headers
-         msg = email.message_from_string(str(self.original_mail.original_message))
+         msg = email.message_from_string(str(self.original_mail.message_headers))
          for hdr in ('Message-ID', 'References', 'In-Reply-To'):
             if hdr in msg:
                headers[hdr] = msg[hdr].replace("\r", "").replace("\n", " ")

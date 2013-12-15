@@ -12,6 +12,8 @@ urlpatterns = patterns('',
    (r'^moderate/(?P<id>[\d]+)/$', 'comlink.views.moderator_inspect'),
    (r'^moderate/(?P<id>[\d]+)/approve/$', 'comlink.views.moderator_approve'),
    (r'^moderate/(?P<id>[\d]+)/reject/$', 'comlink.views.moderator_reject'),
+   (r'^receive/$', 'comlink.views.email_receive'),
+
 	(r'^$', 'comlink.views.index'),
 )
 
