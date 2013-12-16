@@ -109,6 +109,7 @@ def email_receive(request):
 		}
 
 		recipient = request.POST.get("recipient")
+		# TODO if somehow we receive a message to a non-existent mailing list, fail gracefully 
 		mailing_list = MailingList.objects.get(email_address = recipient)
 
 		# add the message to the database

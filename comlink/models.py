@@ -122,7 +122,7 @@ class MailingList(models.Model):
 	
 	def create_incoming(self, message, commit=True):
 		"Parses an email message and creates an IncomingMail from it."
-		_name, origin_address = email.utils.parseaddr(message['From'])
+		_name, origin_address = email.utils.parseaddr(message['sender'])
 		sent_time = message['sent_time']
 		body = message['body']
 		html_body = message['html_body'] 
