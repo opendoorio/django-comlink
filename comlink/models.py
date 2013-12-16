@@ -347,7 +347,6 @@ class OutgoingMail(models.Model):
 		return num_recipients
 
 	def send(self):
-
 		mailgun_api_key = settings.MAILGUN_API_KEY
 		list_domain = settings.LIST_DOMAIN
 	  
@@ -367,18 +366,18 @@ class OutgoingMail(models.Model):
 		self.attempts = self.attempts + 1
 		self.save()
 
-	  # this function is based on the old send() that used SMPT. this section
-	  # is copied from that function, and moderation logic seemed to work in
-	  # the old system, but this is confusing because the message has
-	  # empirically been sent just above, so it's not clear why the state would
-	  # be left in 'moderate' if the message was sent. 
+		# this function is based on the old send() that used SMPT. this section
+		# is copied from that function, and moderation logic seemed to work in
+		# the old system, but this is confusing because the message has
+		# empirically been sent just above, so it's not clear why the state would
+		# be left in 'moderate' if the message was sent. 
 		if self.original_mail and self.original_mail.state != 'moderate':
 			self.original_mail.state = 'sent'
 			self.original_mail.save()
 
-	  # XXX we should check the response object to make sure the message was
-	  # actually sent. 
-	  self.sent_recipients = len(self.mailing_list.subscriber_addresses),
+		# XXX we should check the response object to make sure the message was
+		# actually sent. 
+		self.sent_recipients = len(self.mailing_list.subscriber_addresses),
 		self.sent = timezone.localtime(timezone.now())
 		self.save()
 

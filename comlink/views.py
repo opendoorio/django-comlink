@@ -84,15 +84,14 @@ def moderator_reject(request, id):
 	incoming_mail.reject()
 	return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
-
 def email_receive(request):
 	# determine which mailing list this was for 
 	if request.method == 'POST':
-			# attachments
-		 file_names = []
-			for key in request.FILES:
-				 file_names.append(request.FILES[key])
-			 # TODO: do something real with the files
+		# attachments
+		file_names = []
+		for key in request.FILES:
+			file_names.append(request.FILES[key])
+			# TODO: do something real with the files
 
 		msg_timestamp = datetime.datetime.fromtimestamp(int(request.POST.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S'))
 		message = {
@@ -121,11 +120,5 @@ def email_receive(request):
 		# Returned text is ignored but HTTP status code matters:
 		# Mailgun wants to see 2xx, otherwise it will make another attempt in 5 minutes
 		return HttpResponse('OK')
-
-
-
-
-
-
 
 # Copyright 2011 Office Nomads LLC (http://www.officenomads.com/) Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
