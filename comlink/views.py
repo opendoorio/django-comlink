@@ -108,7 +108,8 @@ def email_receive(request):
 			'headers': request.POST.get('message-headers', '')
 		}
 
-		mailing_list = MailingList.objects.get(email_address = request.POST.get("recipient"))
+		recipient = request.POST.get("recipient")
+		mailing_list = MailingList.objects.get(email_address = recipient)
 
 		# add the message to the database
 		mailing_list.create_incoming(message)
