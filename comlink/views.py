@@ -96,7 +96,7 @@ def email_receive(request):
 			file_names.append(request.FILES[key])
 			# TODO: do something real with the files
 
-		msg_timestamp = datetime.datetime.fromtimestamp(int(request.POST.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S'))
+		msg_timestamp = datetime.datetime.fromtimestamp(int(request.POST.get('timestamp'))).strftime('%Y-%m-%d %H:%M:%S')
 		message = {
 			'sender': request.POST.get('sender'),
 			'recipient': request.POST.get('recipient'),
