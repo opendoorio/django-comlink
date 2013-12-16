@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render_to_response, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 
 from models import MailingList, IncomingMail
 from staff.models import Member
@@ -45,7 +46,6 @@ def unsubscribe(request, list_id, username):
       return HttpResponseRedirect(reverse('comlink.views.list_subscribers', args=[list_id]))
    return render_to_response('comlink/unsubscribe.html', {'member':user.get_profile(), 'mailing_list':mailing_list}, context_instance=RequestContext(request))
 
-
 @staff_member_required
 def moderator_list(request):
    return render_to_response('comlink/moderator_list.html', {}, context_instance=RequestContext(request))
@@ -83,6 +83,48 @@ def moderator_reject(request, id):
    print 'rejecting'
    incoming_mail.reject()
    return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+
+
+def email_receive(request):
+	# determine which mailing list this was for 
+	if request.method == 'POST':
+         # attachments
+		 file_names = []
+         for key in request.FILES:
+             file_names.append(request.FILES[key])
+			 # TODO: do something real with the files
+
+		msg_timestamp = datetime.datetime.fromtimestamp(int(request.POST.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S'))
+		message = {
+			'sender': request.POST.get('sender'),
+			'recipient': request.POST.get('recipient'),
+			'subject': request.POST.get('subject', ''),
+			'body': request.POST.get('body-plain', ''),
+			'html_body': request.POST.get('stripped-text', ''),
+			'file_names': file_names,
+			# we don't have a timestamp on the message so this is approximate
+			'sent_time': msg_timestamp,
+			'headers': request.POST.get('message-headers', '')
+		}
+
+		mailing_list = MailingList.object.get(email_address = recipient)
+
+		# add the message to the database
+		mailing_list.create_incoming(message)
+
+		# process incoming and outgoing mail
+		# TODO we could process messages on a message by message basis since
+		# this callback will be hit once per message, but that's for later...
+		IncomingMail.objects.process_incoming()
+		OutgoingMail.objects.send_outgoing()
+
+		# Returned text is ignored but HTTP status code matters:
+		# Mailgun wants to see 2xx, otherwise it will make another attempt in 5 minutes
+		return HttpResponse('OK')
+
+
+
+
 
 
 

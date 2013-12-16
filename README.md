@@ -21,7 +21,11 @@ installation
 * re-run pip `install -r requirements.txt`
 * add 'comlink' to your settings.py file, under INSTALLED_APPS
 * Add 'comlink' to your urls.py file: `(r'^comlink/', include('comlink.urls', app_name='comlink')),`
-
+* create a mailgun account and set up your MX records as directed in their
+  instructions for sending and receiving. 
+* add MAILGUN_API_KEY and LIST_DOMAIN to your settings.py or local_settings.py.
+  LIST_DOMAIN is the domain regstered with mailgun that you wish to send and
+  receive via. 
 
 
 
