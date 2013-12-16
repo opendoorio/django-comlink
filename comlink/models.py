@@ -127,7 +127,7 @@ class MailingList(models.Model):
 		body = message['body']
 		html_body = message['html_body'] 
 		file_names = message['file_names']
-		message_headers = message['headers']
+		headers = message['headers']
 
 		# inject a message about the attachments we dropped. 
 		for file_name in file_names:
@@ -148,7 +148,7 @@ class MailingList(models.Model):
 					 body=body,
 					 html_body=html_body,
 					 sent_time=sent_time,
-				headers = message_headers,
+				message_headers = headers,
 			)
 		if commit:
 			incoming.save()
