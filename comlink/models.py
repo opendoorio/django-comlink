@@ -144,7 +144,7 @@ class MailingList(models.Model):
 
 		incoming = IncomingMail(mailing_list=self,
 					 origin_address=origin_address,
-					 subject=message['Subject'],
+					 subject=message['subject'],
 					 body=body,
 					 html_body=html_body,
 					 sent_time=sent_time,
