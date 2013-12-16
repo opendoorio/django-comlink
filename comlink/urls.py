@@ -4,16 +4,15 @@ from django.conf import settings
 from models import *
 
 urlpatterns = patterns('',
-   (r'^messages/(?P<list_id>[^/]+)/$', 'comlink.views.list_messages'),
-   (r'^subscribers/(?P<list_id>[^/]+)/$', 'comlink.views.list_subscribers'),
-   (r'^unsubscribe/(?P<list_id>[^/]+)/(?P<username>[^/]+)$', 'comlink.views.unsubscribe'),
-   (r'^subscribe/(?P<list_id>[^/]+)/(?P<username>[^/]+)$', 'comlink.views.subscribe'),
-   (r'^moderate/$', 'comlink.views.moderator_list'),
-   (r'^moderate/(?P<id>[\d]+)/$', 'comlink.views.moderator_inspect'),
-   (r'^moderate/(?P<id>[\d]+)/approve/$', 'comlink.views.moderator_approve'),
-   (r'^moderate/(?P<id>[\d]+)/reject/$', 'comlink.views.moderator_reject'),
-   (r'^receive/$', 'comlink.views.email_receive'),
-
+	(r'^messages/(?P<list_id>[^/]+)/$', 'comlink.views.list_messages'),
+	(r'^subscribers/(?P<list_id>[^/]+)/$', 'comlink.views.list_subscribers'),
+	(r'^unsubscribe/(?P<list_id>[^/]+)/(?P<username>[^/]+)$', 'comlink.views.unsubscribe'),
+	(r'^subscribe/(?P<list_id>[^/]+)/(?P<username>[^/]+)$', 'comlink.views.subscribe'),
+	(r'^moderate/$', 'comlink.views.moderator_list'),
+	(r'^moderate/(?P<id>[\d]+)/$', 'comlink.views.moderator_inspect'),
+	(r'^moderate/(?P<id>[\d]+)/approve/$', 'comlink.views.moderator_approve'),
+	(r'^moderate/(?P<id>[\d]+)/reject/$', 'comlink.views.moderator_reject'),
+	(r'^receive/$', 'comlink.views.email_receive'),
 	(r'^$', 'comlink.views.index'),
 )
 

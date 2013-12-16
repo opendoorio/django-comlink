@@ -12,86 +12,86 @@ from staff.models import Member
 
 @staff_member_required
 def index(request):
-   lists = MailingList.objects.all()
-   return render_to_response('comlink/index.html', {'lists':lists}, context_instance=RequestContext(request))
+	lists = MailingList.objects.all()
+	return render_to_response('comlink/index.html', {'lists':lists}, context_instance=RequestContext(request))
 
 @staff_member_required
 def list_messages(request, list_id):
-   mailing_list = get_object_or_404(MailingList, pk=list_id)
-   return render_to_response('comlink/messages.html', {'mailing_list':mailing_list}, context_instance=RequestContext(request))
+	mailing_list = get_object_or_404(MailingList, pk=list_id)
+	return render_to_response('comlink/messages.html', {'mailing_list':mailing_list}, context_instance=RequestContext(request))
 
 @staff_member_required
 def list_subscribers(request, list_id):
-   mailing_list = get_object_or_404(MailingList, pk=list_id)
-   not_subscribed = Member.objects.active_members().exclude(user__in=mailing_list.subscribers.all)
-   return render_to_response('comlink/subscribers.html', {'mailing_list':mailing_list, 'not_subscribed':not_subscribed}, context_instance=RequestContext(request))
+	mailing_list = get_object_or_404(MailingList, pk=list_id)
+	not_subscribed = Member.objects.active_members().exclude(user__in=mailing_list.subscribers.all)
+	return render_to_response('comlink/subscribers.html', {'mailing_list':mailing_list, 'not_subscribed':not_subscribed}, context_instance=RequestContext(request))
 
 @login_required
 def subscribe(request, list_id, username):
-   mailing_list = get_object_or_404(MailingList, pk=list_id)
-   user = get_object_or_404(User, username=username)
-   if request.method == 'POST':
-      if request.POST.get('confirm', 'No') == "Yes":
-         mailing_list.subscribers.add(user)
-      return HttpResponseRedirect(reverse('comlink.views.list_subscribers', args=[list_id]))
-   return render_to_response('comlink/subscribe.html', {'member':user.get_profile(), 'mailing_list':mailing_list}, context_instance=RequestContext(request))
+	mailing_list = get_object_or_404(MailingList, pk=list_id)
+	user = get_object_or_404(User, username=username)
+	if request.method == 'POST':
+		if request.POST.get('confirm', 'No') == "Yes":
+			mailing_list.subscribers.add(user)
+		return HttpResponseRedirect(reverse('comlink.views.list_subscribers', args=[list_id]))
+	return render_to_response('comlink/subscribe.html', {'member':user.get_profile(), 'mailing_list':mailing_list}, context_instance=RequestContext(request))
 
 @login_required
 def unsubscribe(request, list_id, username):
-   mailing_list = get_object_or_404(MailingList, pk=list_id)
-   user = get_object_or_404(User, username=username)
-   if request.method == 'POST':
-      if request.POST.get('confirm', 'No') == "Yes":
-         mailing_list.subscribers.remove(user)
-      return HttpResponseRedirect(reverse('comlink.views.list_subscribers', args=[list_id]))
-   return render_to_response('comlink/unsubscribe.html', {'member':user.get_profile(), 'mailing_list':mailing_list}, context_instance=RequestContext(request))
+	mailing_list = get_object_or_404(MailingList, pk=list_id)
+	user = get_object_or_404(User, username=username)
+	if request.method == 'POST':
+		if request.POST.get('confirm', 'No') == "Yes":
+			mailing_list.subscribers.remove(user)
+		return HttpResponseRedirect(reverse('comlink.views.list_subscribers', args=[list_id]))
+	return render_to_response('comlink/unsubscribe.html', {'member':user.get_profile(), 'mailing_list':mailing_list}, context_instance=RequestContext(request))
 
 @staff_member_required
 def moderator_list(request):
-   return render_to_response('comlink/moderator_list.html', {}, context_instance=RequestContext(request))
+	return render_to_response('comlink/moderator_list.html', {}, context_instance=RequestContext(request))
 
 @staff_member_required
 def moderator_inspect(request, id):
-   incoming_mail = get_object_or_404(IncomingMail, pk=id)
-   return render_to_response('comlink/moderator_inspect.html', {'incoming_mail':incoming_mail}, context_instance=RequestContext(request))
+	incoming_mail = get_object_or_404(IncomingMail, pk=id)
+	return render_to_response('comlink/moderator_inspect.html', {'incoming_mail':incoming_mail}, context_instance=RequestContext(request))
 
 @staff_member_required
 def moderator_approve(request, id):
-   incoming_mail = get_object_or_404(IncomingMail, pk=id)
-   if not request.user in incoming_mail.mailing_list.moderators.all():
-      print request.user.get_full_name(), 'tried to moderate an email for %s' % incoming_mail.mailing_list.name
-      return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	incoming_mail = get_object_or_404(IncomingMail, pk=id)
+	if not request.user in incoming_mail.mailing_list.moderators.all():
+		print request.user.get_full_name(), 'tried to moderate an email for %s' % incoming_mail.mailing_list.name
+		return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
-   if incoming_mail.state != 'moderate':
-      print 'Tried to moderate an email which needs no moderation:', incoming_mail, incoming_mail.state
-      return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
-   print 'accepting'
-   incoming_mail.create_outgoing()
-   return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	if incoming_mail.state != 'moderate':
+		print 'Tried to moderate an email which needs no moderation:', incoming_mail, incoming_mail.state
+		return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	print 'accepting'
+	incoming_mail.create_outgoing()
+	return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
 @staff_member_required
 def moderator_reject(request, id):
-   incoming_mail = get_object_or_404(IncomingMail, pk=id)
-   if not request.user in incoming_mail.mailing_list.moderators.all():
-      print request.user.get_full_name(), 'tried to moderate an email for %s' % incoming_mail.mailing_list.name
-      return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	incoming_mail = get_object_or_404(IncomingMail, pk=id)
+	if not request.user in incoming_mail.mailing_list.moderators.all():
+		print request.user.get_full_name(), 'tried to moderate an email for %s' % incoming_mail.mailing_list.name
+		return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
-   if incoming_mail.state != 'moderate':
-      print 'Tried to moderate an email which needs no moderation.'
-      return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	if incoming_mail.state != 'moderate':
+		print 'Tried to moderate an email which needs no moderation.'
+		return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
-   print 'rejecting'
-   incoming_mail.reject()
-   return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
+	print 'rejecting'
+	incoming_mail.reject()
+	return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
 
 def email_receive(request):
 	# determine which mailing list this was for 
 	if request.method == 'POST':
-         # attachments
+			# attachments
 		 file_names = []
-         for key in request.FILES:
-             file_names.append(request.FILES[key])
+			for key in request.FILES:
+				 file_names.append(request.FILES[key])
 			 # TODO: do something real with the files
 
 		msg_timestamp = datetime.datetime.fromtimestamp(int(request.POST.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S'))
