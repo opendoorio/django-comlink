@@ -9,7 +9,7 @@ from django.utils import timezone
 import datetime
 from django.views.decorators.csrf import csrf_exempt
 
-from models import MailingList, IncomingMail
+from models import MailingList, IncomingMail, OutgoingMail
 from staff.models import Member
 
 @staff_member_required
