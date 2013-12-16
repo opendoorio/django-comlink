@@ -3,6 +3,9 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from collections import defaultdict
+import requests
+from paste.util import MultiDict
+
 
 from django.db import models
 from django.db.models import Q, Sum
@@ -293,40 +296,27 @@ class IncomingMail(models.Model):
 
 class OutgoingMailManager(models.Manager):
    def send_outgoing(self):
-      # First, get all the mails we want to send
+
+      # Get all the OutgoingMail objects we want to send
       to_send = (self.select_related('mailing_list')
                      .filter(sent__isnull=True)
                      .filter(Q(last_attempt__isnull=True) |
                              Q(last_attempt__lt=timezone.localtime(timezone.now()) - timedelta(minutes=10))))
-      # This dict is indexed by the mailing list
-      # and contains a list of each mail that should be sent using that smtp info
-      d = defaultdict(list)
-      for m in to_send:
-         d[m.mailing_list].append(m)
 
-      # Once we have this, we can go through each key value pair,
-      # make a connection to the server, and send them all.
-      for ml, mails in d.iteritems():
-         try:
-            conn = ml.get_smtp_connection()
-            conn.open()
-            for m in mails:
-               try:
-                  m.send(conn)
-               except MailingList.LimitExceeded, e:
-                  logger.warning("Limit exceeded: " + str(e),
-                                 exc_info=sys.exc_info(),
-                                 extra={'exception': e})
-                  break
+      for message in to_send:
+         message.send()
 
-         finally:
-            conn.close()
 
 class OutgoingMail(models.Model):
    """Emails which are consumed by the comlink.tasks.EmailTask"""
    mailing_list = models.ForeignKey(MailingList, related_name='outgoing_mails')
    moderators_only = models.BooleanField(default=False)
+   # original_mail is the way to access all original mail fields that have not
+   # been modified for sending. 
    original_mail = models.ForeignKey(IncomingMail, blank=True, null=True, default=None, help_text='The incoming mail which caused this mail to be sent')
+   # subject, body and html_body are stored here separately from the
+   # orginal_mail object because they may be slightly modified to include
+   # subject prefixes, cleaned up, and footers inserted. 
    subject = models.TextField(blank=True)
    body = models.TextField(blank=True, null=True)
    html_body = models.TextField(blank=True, null=True)
@@ -356,78 +346,114 @@ class OutgoingMail(models.Model):
                                          (num, limit))
       return num_recipients
 
-   def send(self, connection=None):
-      if self.sent:
-         return
+   def send(self):
 
-      args = {
-         'subject': self.subject,
-         'body': self.body
-      }
+      mailgun_api_key = settings.MAILGUN_API_KEY
+      list_domain = settings.LIST_DOMAIN
+	  
+      post_url = "https://api.mailgun.net/v2/%s/messages" % list_domain
+      resp = requests.post(
+         post_url, auth=("api", mailgun_api_key),
+         data={"from": self.original_mail.origin_address,
+				"to": self.mailing_list.email_address,
+				"bcc": list(self.mailing_list.subscriber_addresses),
+				"subject": self.subject,
+				"text": self.body,
+				"html": self.html_body
+         }
+      )
 
-      if self.moderators_only:
-         email_cls = EmailMultiAlternatives
-         args['to'] = self.mailing_list.moderator_addresses
-      else:
-         email_cls = MailingListMessage
-         args['to'] = [self.mailing_list.email_address]
-         args['bcc'] = self.mailing_list.subscriber_addresses
-
-      headers = {
-         #'Date': email.utils.formatdate(),  # Done by default in Django
-         'Sender': self.mailing_list.email_address,
-         #'Reply-To': self.mailing_list.email_address,
-         'List-ID': self.mailing_list.list_id,
-         'X-CAN-SPAM-1': 'This message may be a solicitation or advertisement within the specific meaning of the CAN-SPAM Act of 2003.'
-      }
-
-      # Determine the from address
-      if self.original_mail:
-         org = self.original_mail
-         if org.owner:
-            # Sender is a known user
-            args['from_email'] = email.utils.formataddr((org.owner.get_full_name(), org.owner.email))
-         elif org.origin_address and not self.moderators_only:
-            args['from_email'] = self.original_mail.origin_address
-
-      # If it wasn't set, we have nothing better than just to send it from the mailing list
-      args.setdefault('from_email', self.mailing_list.email_address)
-      # Replies go to the originating user, not the list
-      headers['Reply-To'] = args['from_email']
-
-      if self.original_mail and not self.moderators_only:
-         # Attempt to propagate certain headers
-         msg = email.message_from_string(str(self.original_mail.message_headers))
-         for hdr in ('Message-ID', 'References', 'In-Reply-To'):
-            if hdr in msg:
-               headers[hdr] = msg[hdr].replace("\r", "").replace("\n", " ")
-
-      args['headers'] = headers
-
-      msg = email_cls(**args)
-      # Is this really the case? Right now it is, until we don't use the
-      # body or html_body and instead edit the MIME version itself.
-      msg.encoding = 'utf-8'
-      if self.html_body:
-         msg.attach_alternative(self.html_body, 'text/html')
-
-      num_recipients = self._check_throttle(msg)
-
-      # Update this after we pass the throttle but before we actually try to send.
       self.last_attempt = timezone.localtime(timezone.now())
       self.attempts = self.attempts + 1
       self.save()
 
-      conn = connection or self.mailing_list.get_smtp_connection()
-      conn.send_messages([msg])
-
+	  # this function is based on the old send() that used SMPT. this section
+	  # is copied from that function, and moderation logic seemed to work in
+	  # the old system, but this is confusing because the message has
+	  # empirically been sent just above, so it's not clear why the state would
+	  # be left in 'moderate' if the message was sent. 
       if self.original_mail and self.original_mail.state != 'moderate':
          self.original_mail.state = 'sent'
          self.original_mail.save()
 
-      self.sent_recipients = num_recipients
+	  # XXX we should check the response object to make sure the message was
+	  # actually sent. 
+	  self.sent_recipients = len(self.mailing_list.subscriber_addresses),
       self.sent = timezone.localtime(timezone.now())
       self.save()
+
+#   def send(self, connection=None):
+#      if self.sent:
+#         return
+#
+#      args = {
+#         'subject': self.subject,
+#         'body': self.body
+#      }
+#
+#      if self.moderators_only:
+#         email_cls = EmailMultiAlternatives
+#         args['to'] = self.mailing_list.moderator_addresses
+#      else:
+#         email_cls = MailingListMessage
+#         args['to'] = [self.mailing_list.email_address]
+#         args['bcc'] = self.mailing_list.subscriber_addresses
+#
+#      headers = {
+#         #'Date': email.utils.formatdate(),  # Done by default in Django
+#         'Sender': self.mailing_list.email_address,
+#         #'Reply-To': self.mailing_list.email_address,
+#         'List-ID': self.mailing_list.list_id,
+#         'X-CAN-SPAM-1': 'This message may be a solicitation or advertisement within the specific meaning of the CAN-SPAM Act of 2003.'
+#      }
+#
+#      # Determine the from address
+#      if self.original_mail:
+#         org = self.original_mail
+#         if org.owner:
+#            # Sender is a known user
+#            args['from_email'] = email.utils.formataddr((org.owner.get_full_name(), org.owner.email))
+#         elif org.origin_address and not self.moderators_only:
+#            args['from_email'] = self.original_mail.origin_address
+#
+#      # If it wasn't set, we have nothing better than just to send it from the mailing list
+#      args.setdefault('from_email', self.mailing_list.email_address)
+#      # Replies go to the originating user, not the list
+#      headers['Reply-To'] = args['from_email']
+#
+#      if self.original_mail and not self.moderators_only:
+#         # Attempt to propagate certain headers
+#         msg = email.message_from_string(str(self.original_mail.message_headers))
+#         for hdr in ('Message-ID', 'References', 'In-Reply-To'):
+#            if hdr in msg:
+#               headers[hdr] = msg[hdr].replace("\r", "").replace("\n", " ")
+#
+#      args['headers'] = headers
+#
+#      msg = email_cls(**args)
+#      # Is this really the case? Right now it is, until we don't use the
+#      # body or html_body and instead edit the MIME version itself.
+#      msg.encoding = 'utf-8'
+#      if self.html_body:
+#         msg.attach_alternative(self.html_body, 'text/html')
+#
+#      num_recipients = self._check_throttle(msg)
+#
+#      # Update this after we pass the throttle but before we actually try to send.
+#      self.last_attempt = timezone.localtime(timezone.now())
+#      self.attempts = self.attempts + 1
+#      self.save()
+#
+#      conn = connection or self.mailing_list.get_smtp_connection()
+#      conn.send_messages([msg])
+#
+#      if self.original_mail and self.original_mail.state != 'moderate':
+#         self.original_mail.state = 'sent'
+#         self.original_mail.save()
+#
+#      self.sent_recipients = num_recipients
+#      self.sent = timezone.localtime(timezone.now())
+#      self.save()
 
    class Meta:
       ordering = ['-created']
