@@ -6,6 +6,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from models import MailingList, IncomingMail
 from staff.models import Member
@@ -84,6 +85,7 @@ def moderator_reject(request, id):
 	incoming_mail.reject()
 	return HttpResponseRedirect(reverse('comlink.views.moderator_list'))
 
+@csrf_exempt
 def email_receive(request):
 	# determine which mailing list this was for 
 	if request.method == 'POST':
@@ -101,7 +103,6 @@ def email_receive(request):
 			'body': request.POST.get('body-plain', ''),
 			'html_body': request.POST.get('stripped-text', ''),
 			'file_names': file_names,
-			# we don't have a timestamp on the message so this is approximate
 			'sent_time': msg_timestamp,
 			'headers': request.POST.get('message-headers', '')
 		}
