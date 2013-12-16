@@ -4,7 +4,6 @@ import sys
 from datetime import datetime, timedelta
 from collections import defaultdict
 import requests
-from paste.util import MultiDict
 
 
 from django.db import models
